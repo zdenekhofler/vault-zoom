@@ -111,3 +111,4 @@
 - epoch 109: core_features
 - epoch 110: core_features
 - epoch 111: testing
+- epoch 112: testing
