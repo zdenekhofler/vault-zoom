@@ -1,0 +1,25 @@
+{
+  "name": "entry-vault",
+  "version": "0.8.7",
+  "private": true,
+  "description": "Entry Vault — isolated lending + yield router (internal QA)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "server": "node scripts/server.mjs",
+    "stop": "node scripts/stop.mjs",
+    "build": "npm run build -w @entry-vault/shared && npm run build -w @entry-vault/simulator && npm run build -w @entry-vault/console && npm run build -w @entry-vault/api",
+    "verify": "node scripts/verify.mjs",
+    "test": "npm run test -w @entry-vault/simulator",
+    "test:contracts": "cd contracts && forge test",
+    "setup": "node scripts/setup.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}
