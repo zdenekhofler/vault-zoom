@@ -1,6 +1,9 @@
 import ky from "ky";
 import type {
+  CapitalFlowReconciliation,
   MarketConfig,
+  MarketRiskBand,
+  RouterPool,
   SimulationReport,
   StrategyAllocation,
   VaultStatus,
@@ -25,7 +28,8 @@ export interface VaultStatusResponse extends VaultStatus {
 export interface MarketsResponse {
   model: string;
   markets: MarketConfig[];
-  router: { strategies: StrategyAllocation[] };
+  riskBands: MarketRiskBand[];
+  router: { strategies: StrategyAllocation[]; pools: RouterPool[] };
 }
 
 export interface ReviewResponse {
@@ -48,16 +52,50 @@ export interface RoadmapResponse {
 }
 
 export interface DepositPlayResponse {
-  amountUsd: number;
-  routes: { asset: string; marketId: string; weightPct: number; amountUsd: number }[];
+  depositUsd: number;
+  sharesMinted: number;
+  routes: {
+    marketId: string;
+    asset: string;
+    weightBps: number;
+    weightPct: number;
+    amountUsd: number;
+    funding: "routed" | "collateral-only";
+  }[];
+  unfunded: { marketId: string; asset: string; reason: string }[];
+  coverage: { listedMarkets: number; fundedMarkets: number; routedWeightBps: number };
   steps: string[];
+  warnings: string[];
 }
 
 export interface BorrowPlayResponse {
   marketId: string;
   asset: string;
-  healthFactor: string;
-  status: "healthy" | "warning" | "liquidatable";
+  collateralUsd: number;
+  debtUsd: number;
+  maxBorrowUsd: number;
+  liquidationAtUsd: number;
+  canBorrow: boolean;
+  liquidatable: boolean;
+  healthFactor: number;
+  status: "healthy" | "borrow-limit" | "liquidatable";
+  band: {
+    lowUsd: number;
+    highUsd: number;
+    widthUsd: number;
+    widthPp: number;
+    inBand: boolean;
+    positionPct: number | null;
+    repayToBorrowUsd: number;
+    headroomToLiquidationUsd: number;
+    drawdownToLiquidationPct: number | null;
+  };
+  liquidity: {
+    funding: "routed" | "collateral-only";
+    routedWeightBps: number;
+    borrowable: boolean;
+    note: string;
+  };
   plainEnglish: string;
   steps: string[];
 }
@@ -66,6 +104,7 @@ export const api = {
   health: () => http.get("health").json<HealthResponse>(),
   vaultStatus: () => http.get("v1/vault/status").json<VaultStatusResponse>(),
   markets: () => http.get("v1/markets").json<MarketsResponse>(),
+  capitalFlow: () => http.get("v1/capital-flow").json<CapitalFlowReconciliation>(),
   review: () => http.get("v1/review").json<ReviewResponse>(),
   roadmap: () => http.get("v1/roadmap").json<RoadmapResponse>(),
   contracts: () => http.get("v1/contracts").json<{ contracts: { path: string; role: string }[] }>(),

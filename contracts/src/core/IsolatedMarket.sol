@@ -25,6 +25,7 @@ contract IsolatedMarket {
     uint256 public totalBorrow;
     uint256 public immutable collateralFactorBps;
     uint256 public immutable liquidationThresholdBps;
+    uint256 public immutable liquidationBonusBps;
     uint256 public immutable reserveFactorBps;
     bool public paused;
 
@@ -38,6 +39,7 @@ contract IsolatedMarket {
         address pauseGuardian_,
         uint256 collateralFactorBps_,
         uint256 liquidationThresholdBps_,
+        uint256 liquidationBonusBps_,
         uint256 reserveFactorBps_
     ) {
         id = id_;
@@ -45,6 +47,7 @@ contract IsolatedMarket {
         pauseGuardian = pauseGuardian_;
         collateralFactorBps = collateralFactorBps_;
         liquidationThresholdBps = liquidationThresholdBps_;
+        liquidationBonusBps = liquidationBonusBps_;
         reserveFactorBps = reserveFactorBps_;
     }
 
@@ -108,7 +111,9 @@ contract IsolatedMarket {
         uint256 pay = repayAmount > debt ? debt : repayAmount;
         borrowBalance[borrower] -= pay;
         totalBorrow -= pay;
-        seized = (pay * 105) / 100;
+        // Per-market bonus — previously hardcoded to 5%, which ignored the
+        // configured liquidationBonus for every market except eth-core.
+        seized = (pay * (10_000 + liquidationBonusBps)) / 10_000;
         collateralBalance[borrower] -= seized;
         emit Liquidate(borrower, pay, seized);
     }

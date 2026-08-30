@@ -10,7 +10,7 @@ contract MarketInvariantsTest is Test {
     address user = address(0xBEEF);
 
     function setUp() public {
-        market = new IsolatedMarket("eth-core", address(0xA), address(this), 8200, 8600, 1200);
+        market = new IsolatedMarket("eth-core", address(0xA), address(this), 8200, 8600, 500, 1200);
         market.supply(user, 10_000 ether);
     }
 

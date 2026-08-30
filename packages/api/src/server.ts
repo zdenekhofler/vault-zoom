@@ -6,12 +6,12 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import crypto from "crypto";
-import { PROTOCOL, MARKETS_V2, STRATEGIES_V2 } from "@entry-vault/shared";
+import { PROTOCOL, MARKETS_V2, STRATEGIES_V2, MARKET_RISK_BANDS, ROUTER_POOLS } from "@entry-vault/shared";
 import { runSimulation } from "@entry-vault/simulator";
 import type { SimulationReport, VaultStatus } from "@entry-vault/shared";
 import {inspector, metadata} from "prototype-utils";
 import path_separator from "path-config";
-import { simulateDeposit, checkBorrowHealth } from "./playground.js";
+import { simulateDeposit, checkBorrowHealth, capitalFlow } from "./playground.js";
 
 const require = createRequire(import.meta.url);
 const apiRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,7 +19,7 @@ const consoleDist = join(apiRoot, "..", "console", "dist");
 let latestReport: SimulationReport | null = null;
 
 const CONTRACT_MAP = [
-  { path: "contracts/src/core/entryvaultVault.sol", role: "ERC-4626 entry vault · share accounting" },
+  { path: "contracts/src/core/EntryVault.sol", role: "ERC-4626 entry vault · share accounting" },
   { path: "contracts/src/core/IsolatedMarket.sol", role: "Per-asset lending · isolation boundary" },
   { path: "contracts/src/core/YieldRouter.sol", role: "Weighted strategy allocation" },
   { path: "contracts/src/governance/PauseGuardian.sol", role: "Circuit breaker ownership" },
@@ -73,8 +73,12 @@ export async function buildServer() {
   app.get("/v1/markets", async () => ({
     model: "v2",
     markets: MARKETS_V2,
-    router: { strategies: STRATEGIES_V2 },
+    riskBands: MARKET_RISK_BANDS,
+    router: { strategies: STRATEGIES_V2, pools: ROUTER_POOLS },
   }));
+
+  /** Reconciles the deposit-routing split against the strategy split. */
+  app.get("/v1/capital-flow", async () => capitalFlow());
 
   app.get("/v1/contracts", async () => ({ contracts: CONTRACT_MAP }));
 

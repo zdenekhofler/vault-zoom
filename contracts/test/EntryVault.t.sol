@@ -20,8 +20,8 @@ contract EntryVaultTest is Test {
         router = new YieldRouter(address(vault));
         vault.setRouter(address(router));
 
-        ethMarket = new IsolatedMarket("eth-core", ASSET, admin, 8200, 8600, 1200);
-        usdcMarket = new IsolatedMarket("usdc-stable", ASSET, admin, 9000, 9300, 1000);
+        ethMarket = new IsolatedMarket("eth-core", ASSET, admin, 8200, 8600, 500, 1200);
+        usdcMarket = new IsolatedMarket("usdc-stable", ASSET, admin, 9000, 9300, 400, 1000);
 
         ethMarket.setSupplyRouter(address(router));
         usdcMarket.setSupplyRouter(address(router));

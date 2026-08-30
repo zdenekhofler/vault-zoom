@@ -1,7 +1,7 @@
 import * as Slider from "@radix-ui/react-slider";
-import { ROUTER_POOLS } from "@entry-vault/shared";
+import { ROUTED_POOLS, STRATEGIES_V2, UNFUNDED_POOLS } from "@entry-vault/shared";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -16,10 +16,10 @@ export function DepositPanel() {
   const deposit = useMutation({
     mutationFn: () => api.playDeposit(amount),
     onMutate: () => {
-      ["vault", "router", "markets"].forEach((id, i) =>
+      ["vault", "router", "markets", "strategies"].forEach((id, i) =>
         setTimeout(() => setGlow(id), i * 400)
       );
-      setTimeout(() => setGlow(null), 1400);
+      setTimeout(() => setGlow(null), 1800);
     },
     onSuccess: async () => {
       const [status, sim] = await Promise.all([api.vaultStatus(), api.simulationLatest()]);
@@ -33,7 +33,9 @@ export function DepositPanel() {
         <div>
           <h2>Simulate a deposit</h2>
           <p>
-            <code>EntryVault.deposit()</code> → <code>YieldRouter.routeDeposit()</code>
+            <code>EntryVault.deposit()</code> → <code>YieldRouter.routeDeposit()</code> — layer 1
+            splits by market, layer 2 allocates idle balances to strategies. See Markets → Capital
+            flow for the full reconciliation.
           </p>
         </div>
       </div>
@@ -58,7 +60,16 @@ export function DepositPanel() {
         {[
           { id: "vault", title: "Vault", sub: "mint shares" },
           { id: "router", title: "Router", sub: "split %" },
-          { id: "markets", title: "Markets", sub: ROUTER_POOLS.map((p) => p.asset).join(" · ") },
+          {
+            id: "markets",
+            title: "Markets",
+            sub: ROUTED_POOLS.map((p) => `${p.asset} ${p.weightBps / 100}%`).join(" · "),
+          },
+          {
+            id: "strategies",
+            title: "Strategies",
+            sub: `${STRATEGIES_V2.length} venues · idle only`,
+          },
         ].map((n, i, arr) => (
           <div key={n.id} className="flow-item">
             <motion.div
@@ -73,6 +84,15 @@ export function DepositPanel() {
         ))}
       </div>
 
+      {UNFUNDED_POOLS.length > 0 && (
+        <div className="hint hint--warn">
+          <AlertTriangle size={13} style={{ verticalAlign: "-2px", marginRight: ".35rem" }} />
+          Routing gap — {UNFUNDED_POOLS.map((p) => p.asset).join(", ")}{" "}
+          {UNFUNDED_POOLS.length === 1 ? "is" : "are"} listed in Markets and selectable in Check
+          Position, but {UNFUNDED_POOLS.length === 1 ? "receives" : "receive"} 0% of every deposit.
+        </div>
+      )}
+
       {deposit.data && (
         <div className="splits">
           {deposit.data.routes.map((r) => (
@@ -82,6 +102,15 @@ export function DepositPanel() {
                 <div className="split-fill" style={{ width: `${r.weightPct}%` }} />
               </div>
               <em>{fmtUsd(r.amountUsd)}</em>
+            </div>
+          ))}
+          {deposit.data.unfunded.map((u) => (
+            <div key={u.marketId} className="split-row split-row--unfunded">
+              <span>{u.asset}</span>
+              <div className="split-track">
+                <div className="split-fill split-fill--empty" style={{ width: "0%" }} />
+              </div>
+              <em className="dim-inline">not routed</em>
             </div>
           ))}
         </div>
